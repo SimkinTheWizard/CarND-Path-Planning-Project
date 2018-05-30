@@ -9,6 +9,8 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
 
+#include "spline.h"
+
 using namespace std;
 
 // for convenience
@@ -244,6 +246,20 @@ int main() {
 
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
+		    double dist_inc = 0.3;
+		for(int i = 0; i < 50; i++)
+		{
+			/*
+			next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
+			next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
+			*/
+			double next_s = car_s +(+1)*dist_inc;
+			double next_d = 6;
+			vector <double> xy = getXY(next_s,next_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
+			next_x_vals.push_back(xy[0]);
+			next_y_vals.push_back(xy[1]);
+		}
+
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
 
