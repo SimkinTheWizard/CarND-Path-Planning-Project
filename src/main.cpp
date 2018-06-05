@@ -201,9 +201,11 @@ int main() {
   	map_waypoints_s.push_back(s);
   	map_waypoints_dx.push_back(d_x);
   	map_waypoints_dy.push_back(d_y);
+	  
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	double ref_vel = 0;
+  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -268,9 +270,10 @@ int main() {
 			*/
 			
 			int lane = 1; // TODO: get from d value
-			double ref_vel = 49.5;
+			
 			int prev_size = previous_path_x.size();
 			double approach_distance = 30.0;
+			bool too_close = false;
 			
 			for (vector<double> car : sensor_fusion)
 			{
@@ -286,14 +289,22 @@ int main() {
 					check_car_s += ((double)prev_size *0.02*check_speed);
 					if ((check_car_s > car_s) && (check_car_s-car_s<approach_distance))
 					{
-						ref_vel = 29.5;
+						//ref_vel = 29.5;
+						too_close = true;
 						// TODO flag for lane change
 					}
 				}
 				
 			}
 			
-
+			if (too_close)
+			{
+				ref_vel -= 2.224;
+			}
+			else if (ref_vel < 49.5)
+			{
+				ref_vel += 0.224;
+			}
 			
 			vector<double> ptsx;
 			vector<double> ptsy;
