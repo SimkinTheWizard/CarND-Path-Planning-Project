@@ -177,7 +177,7 @@ int main() {
 
   // Waypoint map to read from
   //string map_file_ = "../data/highway_map.csv";
-	string map_file_ = "../../data/highway_map.csv";
+  string map_file_ = "../../data/highway_map.csv";
 	// The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
@@ -269,8 +269,9 @@ int main() {
 			}
 			*/
 			
-			int lane = 1; // TODO: get from d value
-			
+			//int lane = 1; // TODO: get from d value
+			int lane = floor(car_d / 4.0);			
+                        int target_lane = lane;
 			int prev_size = previous_path_x.size();
 			double approach_distance = 30.0;
 			bool too_close = false;
@@ -299,13 +300,18 @@ int main() {
 			
 			if (too_close)
 			{
-				ref_vel -= 2.224;
+				ref_vel -= 0.224;
 			}
 			else if (ref_vel < 49.5)
 			{
 				ref_vel += 0.224;
 			}
-			
+
+                        if (too_close)
+			{
+			    target_lane = 0;
+                        }
+
 			vector<double> ptsx;
 			vector<double> ptsy;
 			
@@ -344,7 +350,7 @@ int main() {
 				ptsy.push_back(ref_y);
 			}
 			double increment = 30;
-			int lane_d = lane*4 + 2;
+			int lane_d = target_lane*4 + 2;
 			vector <double> xy0 = getXY(car_s + increment  ,lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
 			vector <double> xy1 = getXY(car_s + increment*2,lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
 			vector <double> xy2 = getXY(car_s + increment*3,lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
@@ -410,7 +416,7 @@ int main() {
 			double x_add_on = 0;
 			
 			
-			for(int i = 0; i < 50-previous_path_x.size(); i++)
+			for(int i = 0; i < 40-previous_path_x.size(); i++)
 			{
 				double N = target_distance/(0.02*ref_vel/2.24); // 2.24 MPH -> m/s
 				double x_point = x_add_on + (target_x/N);
