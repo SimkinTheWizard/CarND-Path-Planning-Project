@@ -267,10 +267,10 @@ int main() {
 			}
 			*/
 			
-			int lane = 1;
+			int lane = 1; // TODO: get from d value
 			double ref_vel = 49.5;
 			int prev_size = previous_path_x.size();
-			
+			double approach_distance = 30.0;
 			
 			for (vector<double> car : sensor_fusion)
 			{
@@ -282,7 +282,13 @@ int main() {
 					double vy = car[4];
 					double check_speed = sqrt(vx*vx+vy*vy);
 					double check_car_s = car[5];
+					// project the car speed
 					check_car_s += ((double)prev_size *0.02*check_speed);
+					if ((check_car_s > car_s) && (check_car_s-car_s<approach_distance))
+					{
+						ref_vel = 29.5;
+						// TODO flag for lane change
+					}
 				}
 				
 			}
