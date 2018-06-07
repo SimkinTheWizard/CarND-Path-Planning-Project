@@ -165,6 +165,82 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 }
 
+int dToLineNumber(float d)
+{
+	//return floor(d / 4.0);
+	for (int lane = 0; lane<3; lane++)
+	{
+		if ((d < lane*4+2+2) && ( d > lane*4+2-2) )
+			return lane;
+	}
+	return -1; // error
+}
+
+double nearestCarCostFunction(vector<vector<double>> sensor_fusion, int lane, double car_s)
+{
+	double nearest_car_distance = 1e100;
+	for (vector<double> car : sensor_fusion)
+	{
+		float d = car[6];
+		int obstacle_lane = dToLineNumber(d);
+		
+		if (lane == obstacle_lane)
+		{
+			// the car is in the same lane
+			// double vx = car[3];
+			// double vy = car[4];
+			// double check_speed = sqrt(vx*vx+vy*vy);
+			double check_car_s = car[5];
+			double distance = check_car_s - car_s;
+			// if the car is ahead
+			if (distance > 0 )
+			{
+				if (distance < nearest_car_distance )
+					nearest_car_distance = distance;
+			}
+		}
+		
+	}
+	return nearest_car_distance;
+}
+
+int getLowestCostLane(vector<vector<double>> sensor_fusion, int car_lane, double car_s)
+{
+	vector<int> available_lanes;
+	available_lanes.push_back(car_lane);
+	if(car_lane > 0)
+		available_lanes.push_back(car_lane-1);
+	if(car_lane < 2)
+		available_lanes.push_back(car_lane+1);
+	
+	// we invert key and pair because std::sort sorts by index
+	map<double,int> costs;
+	double best_cost = -1;
+	int best_index = car_lane;
+	for(int lane : available_lanes)
+	{
+		double cost = nearestCarCostFunction(sensor_fusion, lane, car_s);
+		costs.insert(make_pair(cost, lane));
+		//std::cout << "lane: " << lane << ", cost: " << cost << std::endl;
+		if (cost > best_cost)
+		{
+			best_cost = cost;
+			best_index = lane;
+		}
+	}
+	
+	//sort(costs.begin(),costs.end());
+	
+	//return costs.end()->second;
+	return best_index;
+}
+
+bool isSafeToPass(int target_lane, vector<vector<double>> sensor_fusion, double car_s)
+{
+	// TODO: check if it is safe
+	return true;
+}
+
 int main() {
   uWS::Hub h;
 
@@ -205,7 +281,8 @@ int main() {
   }
 
 	double ref_vel = 0;
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&ref_vel](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+	int target_lane = 1;
+  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&ref_vel,&target_lane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -269,17 +346,18 @@ int main() {
 			}
 			*/
 			
-			//int lane = 1; // TODO: get from d value
-			int lane = floor(car_d / 4.0);			
-                        int target_lane = lane;
+			
+			int lane = dToLineNumber(car_d);
+			
 			int prev_size = previous_path_x.size();
-			double approach_distance = 30.0;
+			double approach_distance = 40.0;
 			bool too_close = false;
 			
 			for (vector<double> car : sensor_fusion)
 			{
 				float d = car[6];
-				if ((d < lane*4+2+2) && ( d > lane*4+2-2) )
+				int obstacle_lane = dToLineNumber(d);
+				if (lane == obstacle_lane)
 				{
 					// the car is in the same lane
 					double vx = car[3];
@@ -307,10 +385,15 @@ int main() {
 				ref_vel += 0.224;
 			}
 
-                        if (too_close)
+			if (too_close)
 			{
-			    target_lane = 0;
-                        }
+				//if (ref_vel < 45)
+			    //target_lane = 0;
+				int low_cost_lane = getLowestCostLane(sensor_fusion, lane, car_s);
+				std::cout << "best_lane: " << low_cost_lane << std::endl;
+				if (isSafeToPass(low_cost_lane, sensor_fusion, car_s))
+					target_lane = low_cost_lane;
+			}
 
 			vector<double> ptsx;
 			vector<double> ptsy;
@@ -319,7 +402,7 @@ int main() {
 			double ref_y = car_y;
 			double ref_yaw = deg2rad(car_yaw);
 			
-			if (prev_size < 2)
+			if (prev_size < 5)
 			{
 				double prev_car_x = car_x - cos(car_yaw) - 0.0001;
 				double prev_car_y = car_y - sin(car_yaw) - 0.0001;
@@ -335,6 +418,7 @@ int main() {
 			}
 			else
 			{
+				
 				ref_x = previous_path_x[prev_size-1];
 				double prev_ref_x = previous_path_x[prev_size-2];
 				prev_ref_x -= 0.00000001;
@@ -348,12 +432,14 @@ int main() {
 				
 				ptsy.push_back(prev_ref_y);
 				ptsy.push_back(ref_y);
+				 
 			}
 			double increment = 30;
-			int lane_d = target_lane*4 + 2;
-			vector <double> xy0 = getXY(car_s + increment  ,lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
-			vector <double> xy1 = getXY(car_s + increment*2,lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
-			vector <double> xy2 = getXY(car_s + increment*3,lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
+			int lane_d = lane*4 + 2;
+			int tartget_lane_d = target_lane*4 + 2;
+			vector <double> xy0 = getXY(car_s + increment  ,tartget_lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
+			vector <double> xy1 = getXY(car_s + increment*2,tartget_lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
+			vector <double> xy2 = getXY(car_s + increment*3,tartget_lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
 			
 			ptsx.push_back(xy0[0]);
 			ptsx.push_back(xy1[0]);
@@ -416,7 +502,7 @@ int main() {
 			double x_add_on = 0;
 			
 			
-			for(int i = 0; i < 40-previous_path_x.size(); i++)
+			for(int i = 0; i < 20-previous_path_x.size(); i++)
 			{
 				double N = target_distance/(0.02*ref_vel/2.24); // 2.24 MPH -> m/s
 				double x_point = x_add_on + (target_x/N);
