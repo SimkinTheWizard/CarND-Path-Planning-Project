@@ -243,7 +243,7 @@ int getLowestCostLane(vector<vector<double>> sensor_fusion, int car_lane, double
 	
 	// we invert key and pair because std::sort sorts by index
 	map<double,int> costs;
-	double best_cost = -1;
+	double best_cost = 0;
 	int best_index = car_lane;
 	for(int lane : available_lanes)
 	{
@@ -264,11 +264,6 @@ int getLowestCostLane(vector<vector<double>> sensor_fusion, int car_lane, double
 	return best_index;
 }
 
-bool isSafeToPass(int target_lane, vector<vector<double>> sensor_fusion, double car_s)
-{
-	// TODO: check if it is safe
-	return true;
-}
 
 int main() {
   uWS::Hub h;
@@ -420,9 +415,9 @@ int main() {
 				//if (ref_vel < 45)
 			    //target_lane = 0;
 				int low_cost_lane = getLowestCostLane(sensor_fusion, lane, car_s);
-				std::cout << "best_lane: " << low_cost_lane << std::endl;
-				if (isSafeToPass(low_cost_lane, sensor_fusion, car_s))
-					target_lane = low_cost_lane;
+				//std::cout << "best_lane: " << low_cost_lane << std::endl;
+				
+				target_lane = low_cost_lane;
 			}
 
 			vector<double> ptsx;
