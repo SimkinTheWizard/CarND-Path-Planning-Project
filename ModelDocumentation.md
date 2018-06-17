@@ -5,15 +5,15 @@
 For constructing the model I used the template implemented in the walktrough. The model consists of following parts:
 
 * A cost function for lane change
-* Determination of the nearest car in front
-* Determination of safety of the lane
+    * Determination of the nearest car in front
+    * Determination of safety of the lane
 * Determination of the distance from the car in front of my car
-* Lane change if the car is too close
-* Slow down if lane change is not available
-* Gradually increment speed if the car is not too close.
+    * Lane change if the car is too close
+    * Slow down if lane change is not available
+    * Gradually increment speed if the car is not too close.
 * Calculation of the waypoints for the car to follow
-* Construction of a spline with the target points
-* Using the spline for generating a curve and calculating the waypoints on the curve
+    * Construction of a spline with the target points
+    * Using the spline for generating a curve and calculating the waypoints on the curve
 
 The model starts with zero speed and the center lane (in which the car begins the simulation) as the target lane. The speed of the car is gradually incremented until the car reaches the maximum allowed speed or there is a car in front of my car within a certain range.  After that, a spline is constructed using the most recent points of the car and a forward target lane. Following that step, a series of waypoints are calculated with that spline and the cars speed.
 
