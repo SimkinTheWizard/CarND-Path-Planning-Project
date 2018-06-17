@@ -179,6 +179,7 @@ int dToLineNumber(float d)
 double nearestCarCostFunction(vector<vector<double>> sensor_fusion, int lane, double car_s)
 {
 	double nearest_car_distance = 1e100;
+	// find the distance of furthest car in the lane
 	for (vector<double> car : sensor_fusion)
 	{
 		float d = car[6];
@@ -204,6 +205,33 @@ double nearestCarCostFunction(vector<vector<double>> sensor_fusion, int lane, do
 	return nearest_car_distance;
 }
 
+double lineSafetyFunction(vector<vector<double>> sensor_fusion, int lane, double car_s)
+{
+	int margin = 5;
+	for (vector<double> car : sensor_fusion)
+	{
+		float d = car[6];
+		int obstacle_lane = dToLineNumber(d);
+		
+		if (lane == obstacle_lane)
+		{
+			// the car is in the same lane
+			// double vx = car[3];
+			// double vy = car[4];
+			// double check_speed = sqrt(vx*vx+vy*vy);
+			double check_car_s = car[5];
+			double distance = check_car_s - car_s;
+			// if the car is ahead
+			if (abs(distance) < margin )
+			{
+				return 0.0;
+			}
+		}
+		
+	}
+	return 1.0;
+}
+
 int getLowestCostLane(vector<vector<double>> sensor_fusion, int car_lane, double car_s)
 {
 	vector<int> available_lanes;
@@ -219,7 +247,8 @@ int getLowestCostLane(vector<vector<double>> sensor_fusion, int car_lane, double
 	int best_index = car_lane;
 	for(int lane : available_lanes)
 	{
-		double cost = nearestCarCostFunction(sensor_fusion, lane, car_s);
+		double cost = nearestCarCostFunction(sensor_fusion, lane, car_s)*
+					  lineSafetyFunction(sensor_fusion, lane, car_s);
 		costs.insert(make_pair(cost, lane));
 		//std::cout << "lane: " << lane << ", cost: " << cost << std::endl;
 		if (cost > best_cost)
@@ -434,7 +463,7 @@ int main() {
 				ptsy.push_back(ref_y);
 				 
 			}
-			double increment = 30;
+			double increment = 35;
 			int lane_d = lane*4 + 2;
 			int tartget_lane_d = target_lane*4 + 2;
 			vector <double> xy0 = getXY(car_s + increment  ,tartget_lane_d,map_waypoints_s, map_waypoints_x,map_waypoints_y);
